@@ -8,148 +8,144 @@ class SliverDemo extends StatefulWidget {
   _SliverDemoState createState() => _SliverDemoState();
 }
 
-class _SliverDemoState extends State<SliverDemo>
-    with TickerProviderStateMixin {
-  late PageController controller_bg;
-  late PageController controller;
-  late PageController controller_content;
-  late TabController _controller;
-  int thisPage = 0;
-  int controllerIndex = 0;
-
-  late AnimationController titleController;
+class _SliverDemoState extends State<SliverDemo> with TickerProviderStateMixin {
+  var top = 0.0;
+  late ScrollController _scrollController;
+  late Widget _widget;
 
   @override
   void initState() {
     super.initState();
-    controller = PageController(initialPage: 0, viewportFraction: 0.8);
-    controller_bg = PageController(initialPage: 0);
-    controller_content = PageController(initialPage: 0);
-    _controller = TabController(vsync: this, length: 2);
-    _controller.addListener(_handleTabSelection);
-
-    titleController = AnimationController(
-        duration: const Duration(milliseconds: 320), vsync: this);
+    _widget = poster1();
+    _scrollController = ScrollController()
+      ..addListener(
+        () => _isAppBarExpanded
+            ? widget == poster1() ?setState(() {
+                _widget = poster2();
+              }):null
+            : setState(() {
+                _widget = poster1();
+              }),
+      );
   }
 
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  void _handleTabSelection() {
-    setState(() {
-      thisPage = _controller.index;
-    });
+  bool get _isAppBarExpanded {
+    return _scrollController.hasClients &&
+        _scrollController.offset > (200 - kToolbarHeight);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: CustomScrollView(
-      slivers: <Widget>[
-         SliverAppBar(
-          pinned: true,
-          snap: true,
-          floating: true,
-          collapsedHeight: 250,
-          expandedHeight: 500.0,
+    return Scaffold(
+        body: NestedScrollView(
+      controller: _scrollController,
+      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+        return <Widget>[
+          SliverAppBar(
+              expandedHeight: 600.0,
+              collapsedHeight: 400,
+              floating: false,
+              pinned: true,
+              automaticallyImplyLeading: false,
+              title: buildAppBar(),
+              flexibleSpace: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                    return FadeTransition(child: child, opacity: animation);
+                  },
+                  child: _widget)),
+        ];
+      },
+      body: ListView.builder(
 
-          flexibleSpace: FlexibleSpaceBar(
-            collapseMode: CollapseMode.none,
-            background:  PageView.builder(
-                padEnds: false,
-                controller: controller,
-                onPageChanged: (index) {
-                  titleController.forward();
-                  setState(() {
-                    controllerIndex = index;
-                    controller_bg.animateToPage(index,
-                        curve: Curves.easeOut,
-                        duration: Duration(milliseconds: 320));
-                    controller_content.animateToPage(index,
-                        curve: Curves.easeOut,
-                        duration: Duration(milliseconds: 320));
-                  });
-                },
-                itemCount: movie_model.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    margin: const EdgeInsets.only(left: 8.0),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16.0, horizontal: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16.0),
-                            child: ShaderMask(
-                              shaderCallback: (rect) {
-                                return LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  stops: [0, 0.5, 0.7],
-                                  colors: [
-                                    Colors.black,
-                                    Colors.transparent.withOpacity(0.3),
-                                    Colors.transparent
-                                  ],
-                                ).createShader(Rect.fromLTRB(
-                                    0, 0, rect.width, rect.height));
-                              },
-                              blendMode: index == controllerIndex
-                                  ? BlendMode.dst
-                                  : BlendMode.dstIn,
-                              child: Image.asset(
-                                movie_model[index].poster,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            //
-                            // Image.asset(
-                            //   movie_model[index].poster,
-                            //   fit: BoxFit.cover,
-                            // ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-          ),
-        ),
-        SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200.0,
-            mainAxisSpacing: 10.0,
-            crossAxisSpacing: 10.0,
-            childAspectRatio: 4.0,
-          ),
-          delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-              return Container(
-                alignment: Alignment.center,
-                color: Colors.teal[100 * (index % 9)],
-                child: Text('Grid Item $index'),
-              );
-            },
-            childCount: 20,
-          ),
-        ),
-        SliverFixedExtentList(
-          itemExtent: 50.0,
-          delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-              return Container(
-                alignment: Alignment.center,
-                color: Colors.lightBlue[100 * (index % 9)],
-                child: Text('List Item $index'),
-              );
-            },
-          ),
-        ),
-      ],
-    ),);
+        itemCount: 10,
+        itemBuilder: (context, index) {
+          return Text("List Item: " + index.toString());
+        },
+      ),
+    ));
   }
+
+  Widget buildAppBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          "Popular Now",
+          style: TextStyle(
+              color: Colors.white, fontSize: 30, fontWeight: FontWeight.w700),
+        ),
+        IconButton(
+            onPressed: () {
+              print("data");
+              // setState(() {
+              //   controller = PageController(
+              //       initialPage: controllerIndex,
+              //       viewportFraction: 0.8);
+              // });
+            },
+            icon: Icon(
+              Icons.notifications,
+              color: Colors.white,
+            )),
+        // Text("Notifications",
+        //     style: TextStyle(
+        //         color: Colors.white70,
+        //         fontSize: 20,
+        //         fontWeight: FontWeight.w700))
+      ],
+    );
+  }
+
+  Widget poster1() {
+    return Image.asset(
+      'assets/posters/poster1.jpg',
+      fit: BoxFit.cover,
+    );
+  }
+
+  Widget poster2() {
+    return Image.asset(
+      'assets/posters/poster2.jpg',
+      fit: BoxFit.cover,
+    );
+  }
+
+// Widget build(BuildContext context) {
+//   return Scaffold(
+//     body: NestedScrollView(
+//       headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+//         return <Widget>[
+//           SliverAppBar(
+//             expandedHeight: 400.0,
+//             collapsedHeight: 250,
+//             pinned: true,
+//             flexibleSpace: Image.asset(
+//               "assets/posters/poster1.jpg",
+//               fit: BoxFit.cover,
+//             ),
+//           ),
+//         ];
+//       },
+//       body: ListView.builder(
+//         itemBuilder: (BuildContext context, int index) {
+//           return Container(
+//             height: 80,
+//             color: Colors.primaries[index % Colors.primaries.length],
+//             alignment: Alignment.center,
+//             child: Text(
+//               'Item : $index',
+//               style: TextStyle(
+//                 color: Colors.white,
+//                 fontSize: 20,
+//               ),
+//             ),
+//           );
+//         },
+//         itemCount: 20,
+//       ),
+//     ),
+//   );
+// }
 }
